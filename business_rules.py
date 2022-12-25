@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import utils
 
 load_as_type_dict = {"PARTYFORMPUBLICREGISTRY": str,
@@ -100,12 +101,58 @@ def determine_rating_segment_type(df):
     Each entity has at least one segment type, more than one rating segment type can be determined for single entity.
     If none of the types is determined entity gets value not defined.
     """
-    df = utils.concat_df_over_columns(df, ["LEGAL_ENTITIES", "BANKS", "CENTRAL_GOVERNMENT", "ASSOCIATIONS", "FARMERS", "NEWLY_ESTABLISHED", "NOMINAL_TAX_DEDUCTER", "MUNICIPALITIES", "INSURANCE_COMPANIES", "LICENSED_PROFESSIONALS", "FOREIGN_COMPANIES", "OTHER", "NOT_DEFINED"],
-                                   None, False)
+    df = utils.concat_df_over_columns(df, ["LEGAL_ENTITIES", "BANKS", "CENTRAL_GOVERNMENT", "ASSOCIATIONS", "FARMERS",
+                                           "NEWLY_ESTABLISHED", "NOMINAL_TAX_DEDUCTER", "MUNICIPALITIES",
+                                           "INSURANCE_COMPANIES", "LICENSED_PROFESSIONALS", "FOREIGN_COMPANIES",
+                                           "OTHER", "NOT_DEFINED"],
+                                      None, False)
     for k, v in dict_rating_segment_type.items():
         df.loc[eval(k), v] = True
+    df["NOT_DEFINED"] = df[["LEGAL_ENTITIES", "BANKS", "CENTRAL_GOVERNMENT", "ASSOCIATIONS", "FARMERS",
+                            "NEWLY_ESTABLISHED", "NOMINAL_TAX_DEDUCTER", "MUNICIPALITIES", "INSURANCE_COMPANIES",
+                            "LICENSED_PROFESSIONALS", "FOREIGN_COMPANIES", "OTHER"]].eq(False).all(axis=1)
     return df
 
-df = determine_rating_segment_type(df)
+# A dictionary of rules used to rank rating segment type. Used in function: rank_rating_segment_type
+dict_rank_rating_segment_type = {"df['NEWLY_ESTABLISHED'].replace({False: 0, True: 13})": "NEWLY_ESTABLISHED",
+                                 "df['NOMINAL_TAX_DEDUCTER'].replace({False: 0, True: 12})": "NOMINAL_TAX_DEDUCTER",
+                                 "df['FARMERS'].replace({False: 0, True: 11})": "FARMERS",
+                                 "df['LICENSED_PROFESSIONALS'].replace({False: 0, True: 10})": "LICENSED_PROFESSIONALS",
+                                 "df['ASSOCIATIONS'].replace({False: 0, True: 9})": "ASSOCIATIONS",
+                                 "df['MUNICIPALITIES'].replace({False: 0, True: 8})": "MUNICIPALITIES",
+                                 "df['CENTRAL_GOVERNMENT'].replace({False: 0, True: 7})": "CENTRAL_GOVERNMENT",
+                                 "df['BANKS'].replace({False: 0, True: 6})": "BANKS",
+                                 "df['INSURANCE_COMPANIES'].replace({False: 0, True: 5})": "INSURANCE_COMPANIES",
+                                 "df['FOREIGN_COMPANIES'].replace({False: 0, True: 4})": "FOREIGN_COMPANIES",
+                                 "df['LEGAL_ENTITIES'].replace({False: 0, True: 3})": "LEGAL_ENTITIES",
+                                 "df['OTHER'].replace({False: 0, True: 2})": "OTHER",
+                                 "df['NOT_DEFINED'].replace({False: 0, True: 1})": "NOT_DEFINED"}
 
-print(df.to_string())
+def rank_rating_segment_type(df):
+    """
+    Function determines final rating segment type according to ranking rules.
+    Each entity must have only one segment type which is selected according to ranking order.
+    """
+    df = utils.concat_df_over_columns(df, ["RATING_SEGMENT_TYPE"],
+                                      None, False)
+    for k, v in dict_rank_rating_segment_type.items():
+        df.loc[:, v] = eval(k)
+    df['RATING_SEGMENT_TYPE'] = df[["LEGAL_ENTITIES", "BANKS", "CENTRAL_GOVERNMENT", "ASSOCIATIONS", "FARMERS",
+                                           "NEWLY_ESTABLISHED", "NOMINAL_TAX_DEDUCTER", "MUNICIPALITIES",
+                                           "INSURANCE_COMPANIES", "LICENSED_PROFESSIONALS", "FOREIGN_COMPANIES",
+                                           "OTHER", "NOT_DEFINED"]].idxmax(axis=1)
+    return df
+
+
+# Execution
+if __name__ == "__main__":
+    load_as_type_dict = {"PARTYNAME": str,
+                         "PARTYFORMPUBLICREGISTRY": str,
+                         "PARTYSUBFORMPUBLICREGISTRY": str,
+                         "SEGMENT": str,
+                         "INDUSTRY": str}
+    df = pd.read_csv("C:/Users/lucka/PycharmProjects/portfolio_rating_classification/datasets/brec_party.csv",
+                     dtype=load_as_type_dict)
+    df = determine_rating_segment_type(df)
+    df = rank_rating_segment_type(df)
+    print(df.to_string())
