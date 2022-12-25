@@ -1,28 +1,30 @@
-import pandas as pd
-import numpy as np
 import utils
-
-load_as_type_dict = {"PARTYFORMPUBLICREGISTRY": str,
-                     "PARTYSUBFORMPUBLICREGISTRY": str,
-                     "SEGMENT": str,
-                     "INDUSTRY": str}
-df = pd.read_csv("C:/Users/lucka/PycharmProjects/portfolio_rating_classification/datasets/brec_party.csv", dtype = load_as_type_dict)
-
 
 # Codes from different sources assigned to different rating segment types
 # A dictionary of entities form types from AJPES registry assigned to different rating types
-dict_public_registry_type = {"LEGAL_ENTITIES": ["101", "102", "103", "104", "108", "112", "113", "117", "118", "142", "352", "706"],
+dict_public_registry_type = {"LEGAL_ENTITIES": ["101", "102", "103", "104", "108", "112", "113", "117", "118", "142",
+                                                "352", "706"],
                              "BANKS": ["704"],
-                             "CENTRAL_GOVERNMENT": ["201", "300", "301", "302", "303", "304", "305", "306", "307", "308", "309", "310", "311", "313", "315", "321", "322"],
+                             "CENTRAL_GOVERNMENT": ["201", "300", "301", "302", "303", "304", "305", "306", "307",
+                                                    "308", "309", "310", "311", "313", "315", "321", "322"],
                              "ASSOCIATIONS": ["354", "355", "357", "406", "407", "453", "456"],
-                             "FARMERS_A": ["148", "163"], # Farmers defined directly from public registry
-                             "FARMERS_B": ["101", "102", "103", "104", "117", "142", "801", "802", "804", "807"], # Farmers defined indirectly e.g. agricultural company could be sorted into LEGAL_ENTITIES but because of the industry they operate in it is defined as FARMERS
-                             "NEWLY_ESTABLISHED": ["101", "102", "103", "104", "108", "112", "113", "117", "118", "142", "352", "354", "355", "357", "406", "407", "453", "456", "706"],
+                             # Farmers defined directly from public registry
+                             "FARMERS_A": ["148", "163"],
+                             # Farmers defined indirectly (e.g. agricultural company could be sorted into LEGAL_ENTITIES
+                             # but because of the industry they operate in it is defined as FARMERS)
+                             "FARMERS_B": ["101", "102", "103", "104", "117", "142", "801", "802", "804", "807"],
+                             "NEWLY_ESTABLISHED": ["101", "102", "103", "104", "108", "112", "113", "117", "118",
+                                                   "142", "352", "354", "355", "357", "406", "407", "453", "456",
+                                                   "706"],
                              "MUNICIPALITIES": ["316", "318", "319"],
                              "INSURANCE_COMPANIES": ["211"],
                              "LICENSED_PROFESSIONALS": ["119", "146", "151", "152", "153", "154", "155"],
                              "FOREIGN_COMPANIES": ["120", "141"],
-                             "OTHER": ["143", "144", "145", "147", "156", "157", "158", "160", "166", "167", "210", "213", "358", "359", "360", "361", "362", "401", "402", "403", "404", "405", "451", "452", "458", "702", "703", "704", "706", "707", "708", "709", "710", "713", "714", "715", "718", "719", "799", "801", "802", "803", "804", "806", "807", "809", "810", "899"]}
+                             "OTHER": ["143", "144", "145", "147", "156", "157", "158", "160", "166", "167", "210",
+                                       "213", "358", "359", "360", "361", "362", "401", "402", "403", "404", "405",
+                                       "451", "452", "458", "702", "703", "704", "706", "707", "708", "709", "710",
+                                       "713", "714", "715", "718", "719", "799", "801", "802", "803", "804", "806",
+                                       "807", "809", "810", "899"]}
 
 # A dictionary of entities subform type from AJPES registry assigned to different rating types
 dict_public_registry_subtype = {"BANKS": ["005"],
@@ -132,6 +134,7 @@ def rank_rating_segment_type(df):
     """
     Function determines final rating segment type according to ranking rules.
     Each entity must have only one segment type which is selected according to ranking order.
+    Function creates new column and assign to each entity final rating segment type.
     """
     df = utils.concat_df_over_columns(df, ["RATING_SEGMENT_TYPE"],
                                       None, False)
@@ -143,16 +146,17 @@ def rank_rating_segment_type(df):
                                            "OTHER", "NOT_DEFINED"]].idxmax(axis=1)
     return df
 
+# A dictionary of rules used to determine rating model type. Used in function: determine_model_type
+dict_model_type = {# Rule for determining model type MCR
+                    "nekaj":"MCR"}
 
-# Execution
-if __name__ == "__main__":
-    load_as_type_dict = {"PARTYNAME": str,
-                         "PARTYFORMPUBLICREGISTRY": str,
-                         "PARTYSUBFORMPUBLICREGISTRY": str,
-                         "SEGMENT": str,
-                         "INDUSTRY": str}
-    df = pd.read_csv("C:/Users/lucka/PycharmProjects/portfolio_rating_classification/datasets/brec_party.csv",
-                     dtype=load_as_type_dict)
-    df = determine_rating_segment_type(df)
-    df = rank_rating_segment_type(df)
-    print(df.to_string())
+def determine_model_type(df):
+    """
+    Function determines which rating model type is appropriate for each entity.
+    Model type for rating will be determined according to the total revenue, NLB Group exposure and final rating segment.
+    """
+    df = utils.concat_df_over_columns(df, ["MODEL_TYPE"],
+                                      None, False)
+    # for k, v in dict_model_type.items():
+    #     df.loc[:, v] = eval(k)
+    return df
